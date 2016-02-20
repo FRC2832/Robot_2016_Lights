@@ -2,8 +2,8 @@
 #include <mcp_can_dfs.h>
 #include <Adafruit_NeoPixel.h>
 
-Adafruit_NeoPixel eyes = Adafruit_NeoPixel(7, 7, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel sides = Adafruit_NeoPixel(49, 6, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel eyes = Adafruit_NeoPixel(7, 8, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel sides = Adafruit_NeoPixel(49, 9, NEO_GRB + NEO_KHZ800);
 
 int const EYEPIXELCOUNT = 7;
 int const SIDEPIXELCOUNT = 49;
@@ -16,8 +16,8 @@ int eyeLights[EYEPIXELCOUNT];
 int eyeIncrement[EYEPIXELCOUNT];
 int invertColor = 0;
 int eyePattern = 0;
-int sidePattern = 0;
-int sideStage = 0;
+int sidePattern = 2;
+int sideStage = -1;
 int sideIncrement = 0;
 int chargeLightsIncrement = 0;
 long currentTime;
@@ -28,6 +28,12 @@ bool fireTrue = false;
 MCP_CAN CAN(10);  //select pin 10
 
 void setup() {
+  for (int i = 0; i < EYEPIXELCOUNT; i++) {
+    eyeIncrement[i] = 1;
+    eyeLights[i] = TWINKLEMIN + rand() % (TWINKLEMAX - TWINKLEMIN);
+  }
+  eyes.begin();
+  sides.begin();
   Serial.begin(9600);
 START_INIT:
 
@@ -182,20 +188,20 @@ void ctrl() {
     INT32U canId = CAN.getCanId();
 
 
-    Serial.println("-----------------------------");
-    Serial.println("get data from ID: ");
-    Serial.println(canId);
-    Serial.println("len = ");
-    Serial.println(len);
+    /*Serial.println("-----------------------------");
+      Serial.println("get data from ID: ");
+      Serial.println(canId);
+      Serial.println("len = ");
+      Serial.println(len);*/
 
 
     for (int i = 0; i < len; i++) // print the data
     {
-      Serial.print(buf[i]);
-      Serial.print("\t");
+      //Serial.print(buf[i]);
+      //Serial.print("\t");
 
     }
-    Serial.println();
+    //Serial.println();
   }
 
 }
