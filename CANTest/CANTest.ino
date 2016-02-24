@@ -23,11 +23,12 @@ int sidePattern = 2;
 int sideStage = -1;
 int sideIncrement = 0;
 int chargeLightsIncrement = 0;
+int checkCount = 0;
 long currentTime;
 long previousTime;
 char buffer[456];
 bool enabled = true;
-bool fireTrue = false;
+bool fire = false;
 bool binary[8];
 bool teleop = true;
 
@@ -45,7 +46,7 @@ START_INIT:
 
   if (CAN_OK == CAN.begin(CAN_1000KBPS))                  // init can bus : baudrate = 1000k
   {
-    //CAN.init_Filt(0, 0, 0x12c);
+    CAN.init_Filt(0, 0, 0x12c);
     Serial.println("CAN BUS Shield init ok!");
   }
   else
@@ -58,43 +59,41 @@ START_INIT:
 }
 
 void loop() {
-  //Serial.println(currentTime);
   currentTime = millis();
   if (currentTime > previousTime + 10) {
     previousTime = currentTime;
-
-    switch (eyePattern) {
-      case 0:
-        eyeTwinkle();
-        break;
-    }
-    switch (sidePattern) {
-      case 0:
-        sideSpeed();
-        break;
-
-      case 1:
-        sideShoot();
-        break;
-
-      case 2:
-        sideColor();
-        break;
-
-      case 3:
-        sideExpel();
-        break;
-
-      case 4:
-        sideIngest();
-        break;
-    }
-
-
     ctrl();
+    if (enabled) {
+      switch (eyePattern) {
+        case 0:
+          eyeTwinkle();
+          break;
+      }
+      switch (sidePattern) {
+        case 0:
+          sideSpeed();
+          break;
 
-    sides.show();
-    eyes.show();
+        case 1:
+          sideShoot();
+          break;
+
+        case 2:
+          sideColor();
+          break;
+
+        case 3:
+          sideExpel();
+          break;
+
+        case 4:
+          sideIngest();
+          break;
+      }
+
+      sides.show();
+      eyes.show();
+    }
   }
 }
 
@@ -157,9 +156,7 @@ void sideShoot() {
       break;
     case 1:
       if (sideIncrement >= 50) {
-        if (fireTrue) {
           sideStage++;
-        }
         sideIncrement = 0;
         invertColor = abs(invertColor - 255);
         for (int i = 0; i < SIDEPIXELCOUNT; i++) {
@@ -170,7 +167,7 @@ void sideShoot() {
       break;
 
     case 2:
-      if ( !fireTrue) {
+      if ( !fire) {
         sideIncrement++;
       }
       break;
@@ -197,7 +194,7 @@ void sideShoot() {
 
 void sideColor() {
   for (int i = 0; i < SIDEPIXELCOUNT; i++) {
-    sides.setPixelColor(i, Wheel(sideColour));
+    sides.setPixelColor(i, Wheel(teamColour));
   }
 }
 
@@ -205,10 +202,10 @@ void sideExpel() {
   if (sideIncrement >= 30) {
     for (int i = 0; i < SIDEPIXELCOUNT; i++) {
       if (i == SIDEPIXELCOUNT - chargeLightsIncrement) {
-        side.setPixelColor(i, wheel(teamColor));
+        sides.setPixelColor(i, Wheel(teamColour));
       }
       else {
-        side.setPixelColor(i, 0, 0, 0);
+        sides.setPixelColor(i, 0, 0, 0);
       }
     }
     if (chargeLightsIncrement >= SIDEPIXELCOUNT) {
@@ -221,15 +218,20 @@ void sideExpel() {
 }
 
 void sideIngest() {
-  if (sideIncrement >= 30) {
-    for (int i = 0; i < SIDEPIXELCOUNT; i++) {
-      if (i == chargeLightsIncrement) {
-        side.setPixelColor(i, wheel(teamColor));
+  if (sideIncrement >= 30) 
+  {
+    for (int i = 0; i < SIDEPIXELCOUNT; i++) 
+    {
+      if (i == chargeLightsIncrement) 
+      {
+        sides.setPixelColor(i, Wheel(teamColour));
       }
-      else {
-        side.setPixelColor(i, 0, 0, 0);
+      else 
+      {
+        sides.setPixelColor(i, 0, 0, 0);
       }
     }
+    
     if (chargeLightsIncrement >= SIDEPIXELCOUNT) {
       chargeLightsIncrement = 0;
     }
@@ -251,8 +253,9 @@ void ctrl() {
     INT32U canId = CAN.getCanId();
 
     //teleop/auton,red/blue,enable/disable,spin,shoot,expel,ingest,null
-
-    if (canId == 0x12c) {
+//Serial.println();
+    if (canId == 0x12c) 
+    {
       /*
         if (BINARYATTEMPT == 0) {
         for (int i = 7; i >= 0; i--) {
@@ -278,19 +281,13 @@ void ctrl() {
         }
       }
     }
-
+/*
     for (int i = 0; i <= 7; i++) {
-      Serial.println();
-      Serial.println( binary[i] );
+      Serial.print( binary[i] );
     }//teleop/auton,red/blue,enable/disable,spin,shoot,expel,ingest,null
-
-    teleop = binary[0];
-    if (binary[0]) { //teleop/auton
-      teleop = true;
-    }
-    else {
-      teleop = false;
-    }
+    Serial.println();
+ */   
+    teleop = binary[0]; //teleop/auton
 
     if (binary[1]) { //red/blue
       teamColour = 0;
@@ -299,12 +296,37 @@ void ctrl() {
       teamColour = 200;
     }
 
-    if (binary[2]) { //enable/disable
-      enabled = true;
+    enabled = binary[2]; //enable/disable
+
+    if (binary[3]) { //spin
+
     }
-    else {
-      enabled = false;
+
+    fire = binary[4];  //shoot
+
+    if (binary[5]) { //expell
+      sidePattern = 3;
     }
+
+    if (binary[6]) { //ingest
+      sidePattern = 4;
+    }
+
+    checkCount = 0;
+    for (int i = 3; i < 7; i++) {
+      if (binary[i]) {
+        checkCount++;
+      }
+    }
+    if (checkCount != 0) {
+      if (teleop) {
+
+      }
+      else {
+
+      }
+    }
+
   }
 }
 
