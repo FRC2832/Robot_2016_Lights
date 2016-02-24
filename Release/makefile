@@ -68,31 +68,31 @@ all: Arduino
 Arduino: $(FLASH_IMAGE)
 	@echo 'Building target: $@'
 	@echo 'Printing size:'
-	"C:\Users\justi\Downloads\eclipse-cpp-mars-1-win32-x86_64\eclipse\arduinoPlugin\tools\arduino\avr-gcc\4.8.1-arduino5/bin/avr-size" -A "C:/Users/Justin/git/Robot_2016_Lights/Release/Arduino.elf"
+	${JANTJE.SIZE.SWITCH}
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 arduino.ar: $(AR_OBJ)
 	@echo 'Starting archiver'
-	"C:\Users\justi\Downloads\eclipse-cpp-mars-1-win32-x86_64\eclipse\arduinoPlugin\tools\arduino\avr-gcc\4.8.1-arduino5/bin/avr-ar" rcs  "C:/Users/Justin/git/Robot_2016_Lights/Release/arduino.ar"    arduino.ar $(AR_OBJ)
+	arduino.ar $(AR_OBJ)
 	@echo 'Finished building: $@'
 	@echo ' '
 
 Arduino.elf: $(LINK_OBJ) $(AR)
 	@echo 'Starting combiner'
-	"C:\Users\justi\Downloads\eclipse-cpp-mars-1-win32-x86_64\eclipse\arduinoPlugin\tools\arduino\avr-gcc\4.8.1-arduino5/bin/avr-gcc" -Os -Wl,--gc-sections -mmcu=atmega328p  -o "C:/Users/Justin/git/Robot_2016_Lights/Release/Arduino.elf"   $(LINK_OBJ) $(AR)    "-LC:/Users/Justin/git/Robot_2016_Lights/Release" -lm
+	$(LINK_OBJ) $(AR)
 	@echo 'Finished building: $@'
 	@echo ' '
 
 Arduino.eep: $(ELF)
 	@echo 'Create eeprom image'
-	"C:\Users\justi\Downloads\eclipse-cpp-mars-1-win32-x86_64\eclipse\arduinoPlugin\tools\arduino\avr-gcc\4.8.1-arduino5/bin/avr-objcopy" -O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0  "C:/Users/Justin/git/Robot_2016_Lights/Release/Arduino.elf" "C:/Users/Justin/git/Robot_2016_Lights/Release/Arduino.eep"
+	${A.RECIPE.OBJCOPY.EEP.PATTERN}
 	@echo 'Finished building: $@'
 	@echo ' '
 
 Arduino.hex: $(EEP)
 	@echo 'Create Flash image (ihex format)'
-	"C:\Users\justi\Downloads\eclipse-cpp-mars-1-win32-x86_64\eclipse\arduinoPlugin\tools\arduino\avr-gcc\4.8.1-arduino5/bin/avr-objcopy" -O ihex -R .eeprom  "C:/Users/Justin/git/Robot_2016_Lights/Release/Arduino.elf" "C:/Users/Justin/git/Robot_2016_Lights/Release/Arduino.hex"
+	${A.RECIPE.OBJCOPY.HEX.PATTERN}
 	@echo 'Finished building: $@'
 	@echo ' '
 

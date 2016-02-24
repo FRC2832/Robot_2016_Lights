@@ -18,7 +18,7 @@ int eyeLights[EYEPIXELCOUNT];
 int eyeIncrement[EYEPIXELCOUNT];
 int invertColor = 0;
 int eyePattern = 0;
-int teamColour = 70;
+int teamColour = 70; //green
 int sidePattern = 2;
 int sideStage = -1;
 int sideIncrement = 0;
@@ -63,37 +63,35 @@ void loop() {
   if (currentTime > previousTime + 10) {
     previousTime = currentTime;
     ctrl();
-    if (enabled) {
-      switch (eyePattern) {
-        case 0:
-          eyeTwinkle();
-          break;
-      }
-      switch (sidePattern) {
-        case 0:
-          sideSpeed();
-          break;
-
-        case 1:
-          sideShoot();
-          break;
-
-        case 2:
-          sideColor();
-          break;
-
-        case 3:
-          sideExpel();
-          break;
-
-        case 4:
-          sideIngest();
-          break;
-      }
-
-      sides.show();
-      eyes.show();
+    switch (eyePattern) {
+      case 0:
+        eyeTwinkle();
+        break;
     }
+    switch (sidePattern) {
+      case 0:
+        sideSpeed();
+        break;
+
+      case 1:
+        sideShoot();
+        break;
+
+      case 2:
+        sideColor();
+        break;
+
+      case 3:
+        sideExpel();
+        break;
+
+      case 4:
+        sideIngest();
+        break;
+    }
+
+    sides.show();
+    eyes.show();
   }
 }
 
@@ -156,7 +154,7 @@ void sideShoot() {
       break;
     case 1:
       if (sideIncrement >= 50) {
-          sideStage++;
+        sideStage++;
         sideIncrement = 0;
         invertColor = abs(invertColor - 255);
         for (int i = 0; i < SIDEPIXELCOUNT; i++) {
@@ -218,20 +216,20 @@ void sideExpel() {
 }
 
 void sideIngest() {
-  if (sideIncrement >= 30) 
+  if (sideIncrement >= 30)
   {
-    for (int i = 0; i < SIDEPIXELCOUNT; i++) 
+    for (int i = 0; i < SIDEPIXELCOUNT; i++)
     {
-      if (i == chargeLightsIncrement) 
+      if (i == chargeLightsIncrement)
       {
         sides.setPixelColor(i, Wheel(teamColour));
       }
-      else 
+      else
       {
         sides.setPixelColor(i, 0, 0, 0);
       }
     }
-    
+
     if (chargeLightsIncrement >= SIDEPIXELCOUNT) {
       chargeLightsIncrement = 0;
     }
@@ -253,8 +251,8 @@ void ctrl() {
     INT32U canId = CAN.getCanId();
 
     //teleop/auton,red/blue,enable/disable,spin,shoot,expel,ingest,null
-//Serial.println();
-    if (canId == 0x12c) 
+    //Serial.println();
+    if (canId == 0x12c)
     {
       /*
         if (BINARYATTEMPT == 0) {
@@ -281,20 +279,24 @@ void ctrl() {
         }
       }
     }
-/*
-    for (int i = 0; i <= 7; i++) {
-      Serial.print( binary[i] );
-    }//teleop/auton,red/blue,enable/disable,spin,shoot,expel,ingest,null
-    Serial.println();
- */   
+    /*
+        for (int i = 0; i <= 7; i++) {
+          Serial.print( binary[i] );
+        }//teleop/auton,red/blue,enable/disable,spin,shoot,expel,ingest,null
+        Serial.println();
+    */
+    //Serial.println("message ");
     teleop = binary[0]; //teleop/auton
 
     if (binary[1]) { //red/blue
-      teamColour = 0;
+      teamColour = 0; //red
     }
     else {
-      teamColour = 200;
+      teamColour = 170; //blue
     }
+
+//Serial.println();
+
 
     enabled = binary[2]; //enable/disable
 
@@ -320,10 +322,10 @@ void ctrl() {
     }
     if (checkCount != 0) {
       if (teleop) {
-
+        sidePattern = 2;
       }
       else {
-
+        sidePattern = 2;
       }
     }
 
