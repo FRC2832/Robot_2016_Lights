@@ -28,6 +28,7 @@ int teamColour = 70; //green
 int sidePattern = 2;
 int sideStage = -1;
 int sideIncrement = 0;
+int sideInvert = 1;
 float sensorValue;
 int chargeLightsIncrement = 0;
 int checkCount = 0;
@@ -40,6 +41,7 @@ bool binary[8];
 bool teleop = true;
 INT32U canId = 0;
 bool sideInit = false;
+int sidePatternIncrement = 0;
 
 MCP_CAN CAN(10);  //select pin 10
 
@@ -79,7 +81,7 @@ void loop() {
     //ctrl();
     numCount++;
     if (numCount >= 50) {
-      Serial.println(mesNum);
+       Serial.println(sidePattern);
       numCount = 0;
     }
     switch (eyePattern) {
@@ -149,8 +151,32 @@ void eyeTwinkle() {
 }
 
 void sideDisabled() {
-  for (int i = 0; i < 49; i++) {
-    sides.setPixelColor(i, Wheel(teamColour));
+  /*
+  if (sideIncrement >= 1) {
+    sidePatternIncrement = sidePatternIncrement + sidePattern;
+    if (sidePatternIncrement >= EYEPIXELCOUNT || sidePatternIncrement < 0) {
+      sidePattern = sidePattern * -1;
+    }
+    for (int i = 0; i < EYEPIXELCOUNT / 2; i++) {
+      if (i == sidePatternIncrement) {
+        sides.setPixelColor(i, Wheel(teamColour));
+      }
+      else {
+        sides.setPixelColor(i, 0, 0, 0);
+      }
+      if (i == EYEPIXELCOUNT - sidePatternIncrement) {
+        sides.setPixelColor(i, Wheel(teamColour));
+      }
+      else {
+        sides.setPixelColor(i, 0, 0, 0);
+      }
+    }
+    sideIncrement = 0;
+  }
+  sideIncrement++;
+  */
+  for (int i = 0; i < EYEPIXELCOUNT; i++) {
+    sides.setPixelColor(i, Wheel(70));    
   }
 }
 
@@ -290,9 +316,7 @@ void ctrl() {
     //teleop/auton,red/blue,enable/disable,spin,shoot,expel,ingest,null
 
     if (canId == OURCANID || BINARYOVERIDE) {
- //if( (canId & 0x003F) == 0x0010 ) {  
-Serial.println(canId);
-    
+      //if( (canId & 0x003F) == 0x0010 ) {
       mesNum++;
       //Serial.println("message");
       for (int i = 7; i >= 0; i--)
@@ -310,9 +334,7 @@ Serial.println(canId);
           binary[i] = binary[7 - i];
         }
       }
-
       if (!BINARYOUT) {
-        //Serial.println("message ");
         teleop = binary[0]; //teleop/auton
 
         if (binary[1]) { //red/blue
@@ -332,6 +354,7 @@ Serial.println(canId);
         }
 
         if (binary[3]) { //spin
+          Serial.println("binary3");
           sidePattern = 1;
           if (!sideInit) {
             sideStage = -1;
