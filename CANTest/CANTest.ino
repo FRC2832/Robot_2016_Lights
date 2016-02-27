@@ -8,20 +8,27 @@ Adafruit_NeoPixel sides = Adafruit_NeoPixel(49, 9, NEO_GRB + NEO_KHZ800);
 int const EYEPIXELCOUNT = 7;
 int const SIDEPIXELCOUNT = 49;
 int const CHARGETIME = 100; //centiseconds
-int const DISCHARGETIME = 30; //same
+int const DISCHARGETIME = 20; //same
 int const TWINKLEMAX = 100;
 int const TWINKLEMIN = 60;
 int const BINARYATTEMPT = 0;
 bool const INVERTBINARY = false;
+bool const BINARYOUT = true;
+bool const BINARYOVERIDE = false;
+bool const BINARYSET[8] = {1, 0, 1, 0, 0, 0, 0};
+INT32U const OURCANID = 0x02021450;
 
 int eyeLights[EYEPIXELCOUNT];
 int eyeIncrement[EYEPIXELCOUNT];
 int invertColor = 0;
+int mesNum = 0;
+int numCount = 0;
 int eyePattern = 0;
 int teamColour = 70; //green
 int sidePattern = 2;
 int sideStage = -1;
 int sideIncrement = 0;
+float sensorValue;
 int chargeLightsIncrement = 0;
 int checkCount = 0;
 long currentTime;
@@ -31,10 +38,13 @@ bool enabled = true;
 bool fire = false;
 bool binary[8];
 bool teleop = true;
+INT32U canId = 0;
+bool sideInit = false;
 
 MCP_CAN CAN(10);  //select pin 10
 
 void setup() {
+  sensorValue = analogRead(A0);
   Serial.begin(9600);
   for (int i = 0; i < EYEPIXELCOUNT; i++) {
     eyeIncrement[i] = 1;
@@ -46,7 +56,7 @@ START_INIT:
 
   if (CAN_OK == CAN.begin(CAN_1000KBPS))                  // init can bus : baudrate = 1000k
   {
-    CAN.init_Filt(0, 0, 0x12c);
+    CAN.init_Filt(0, 1, OURCANID);
     Serial.println("CAN BUS Shield init ok!");
   }
   else
@@ -59,10 +69,19 @@ START_INIT:
 }
 
 void loop() {
+  ctrl();
   currentTime = millis();
   if (currentTime > previousTime + 10) {
     previousTime = currentTime;
-    ctrl();
+    sensorValue = analogRead(A0) * 0.0049 ;
+    //Serial.println(sensorValue);
+    //Serial.println(sidePattern);
+    //ctrl();
+    numCount++;
+    if (numCount >= 50) {
+      Serial.println(mesNum);
+      numCount = 0;
+    }
     switch (eyePattern) {
       case 0:
         eyeTwinkle();
@@ -87,6 +106,14 @@ void loop() {
 
       case 4:
         sideIngest();
+        break;
+
+      case 5:
+        sideDisabled();
+        break;
+
+      case 6:
+        sideBinary();
         break;
     }
 
@@ -121,11 +148,31 @@ void eyeTwinkle() {
   }
 }
 
+void sideDisabled() {
+  for (int i = 0; i < 49; i++) {
+    sides.setPixelColor(i, Wheel(teamColour));
+  }
+}
+
 void sideSpeed() {
   if (sideIncrement >= 99) {
     sideIncrement = 0;
   }
   sideIncrement++;
+}
+
+void sideBinary() {
+  for (int i = 0; i < 8; i++) {
+    if (binary[i]) {
+      sides.setPixelColor(i, Wheel(170));
+    }
+    else {
+      sides.setPixelColor(i, 0, 0, 0);
+    }
+  }
+  for (int i = 8; i < 49; i++) {
+    sides.setPixelColor(i, 0, 0, 0);
+  }
 }
 
 void sideShoot() {
@@ -144,7 +191,7 @@ void sideShoot() {
       }
       else {
         if (sideIncrement > CHARGETIME / SIDEPIXELCOUNT) {
-          sides.setPixelColor(chargeLightsIncrement, Wheel(0));
+          sides.setPixelColor(chargeLightsIncrement, Wheel(teamColour));
           chargeLightsIncrement++;
           sideIncrement = 0;
           invertColor = 0;
@@ -152,33 +199,22 @@ void sideShoot() {
         sideIncrement++;
       }
       break;
+
     case 1:
-      if (sideIncrement >= 50) {
+      if (fire) {
         sideStage++;
-        sideIncrement = 0;
-        invertColor = abs(invertColor - 255);
-        for (int i = 0; i < SIDEPIXELCOUNT; i++) {
-          sides.setPixelColor(i, invertColor, 0, 0);
-        }
       }
-      sideIncrement++;
       break;
 
     case 2:
-      if ( !fire) {
-        sideIncrement++;
-      }
-      break;
-
-    case 3:
       //Serial.println(chargeLightsIncrement);
       if (chargeLightsIncrement >= SIDEPIXELCOUNT) {
         //Serial.println("done");
         sideIncrement = 0;
         chargeLightsIncrement = 0;
-        sideStage = 1;
       }
       else {
+        Serial.println("a");
         if (sideIncrement > DISCHARGETIME / SIDEPIXELCOUNT) {
           sides.setPixelColor(SIDEPIXELCOUNT - chargeLightsIncrement, 0, 0, 0);
           chargeLightsIncrement++;
@@ -197,7 +233,7 @@ void sideColor() {
 }
 
 void sideExpel() {
-  if (sideIncrement >= 30) {
+  if (sideIncrement >= 1) {
     for (int i = 0; i < SIDEPIXELCOUNT; i++) {
       if (i == SIDEPIXELCOUNT - chargeLightsIncrement) {
         sides.setPixelColor(i, Wheel(teamColour));
@@ -216,7 +252,7 @@ void sideExpel() {
 }
 
 void sideIngest() {
-  if (sideIncrement >= 30)
+  if (sideIncrement >= 1)
   {
     for (int i = 0; i < SIDEPIXELCOUNT; i++)
     {
@@ -244,92 +280,101 @@ void ctrl() {
   unsigned char len = 0;
   unsigned char buf[8];
 
-  if (CAN_MSGAVAIL == CAN.checkReceive())           // check if data coming
-  {
-    CAN.readMsgBuf(&len, buf);    // read data,  len: data length, buf: data buf
-
-    INT32U canId = CAN.getCanId();
-
+  if (CAN_MSGAVAIL == CAN.checkReceive()) {
+    // check if data coming
+    if (!BINARYOVERIDE) {
+      CAN.readMsgBuf(&len, buf);    // read data,  len: data length, buf: data buf
+      canId = CAN.getCanId();
+      //Serial.println(canId);
+    }
     //teleop/auton,red/blue,enable/disable,spin,shoot,expel,ingest,null
-    //Serial.println();
-    if (canId == 0x12c)
-    {
-      /*
-        if (BINARYATTEMPT == 0) {
-        for (int i = 7; i >= 0; i--) {
-          if (111 & (1 << i)) {
-            //Serial.println("1");
-            binary[i] = true;
-          }
-          else {
-            //Serial.print("0");
-            binary[i] = false;
-          }
-        }
-        }
-        else*/{
-        for (int i = 7; i >= 0; i--) {
-          binary[i] = (buf[i] != 0);
-        }
+
+    if (canId == OURCANID || BINARYOVERIDE) {
+ //if( (canId & 0x003F) == 0x0010 ) {  
+Serial.println(canId);
+    
+      mesNum++;
+      //Serial.println("message");
+      for (int i = 7; i >= 0; i--)
+      {
+        binary[i] = (buf[i] != 0);
+      }
+
+      if (BINARYOVERIDE) {
+        memcpy(binary, BINARYSET, 8);
       }
 
       if (INVERTBINARY) {
-        for (int i = 0; i <= 3; i++) {
+        for (int i = 0; i <= 3; i++)
+        {
           binary[i] = binary[7 - i];
         }
       }
-    }
-    /*
-        for (int i = 0; i <= 7; i++) {
-          Serial.print( binary[i] );
-        }//teleop/auton,red/blue,enable/disable,spin,shoot,expel,ingest,null
-        Serial.println();
-    */
-    //Serial.println("message ");
-    teleop = binary[0]; //teleop/auton
 
-    if (binary[1]) { //red/blue
-      teamColour = 0; //red
-    }
-    else {
-      teamColour = 170; //blue
-    }
+      if (!BINARYOUT) {
+        //Serial.println("message ");
+        teleop = binary[0]; //teleop/auton
 
-//Serial.println();
+        if (binary[1]) { //red/blue
+          teamColour = 0; //red
+        }
+        else {
+          teamColour = 170; //blue
+        }
 
+        if (binary[2]) { //enable/disabled
+          enabled = true;
+        }
+        else {
+          sidePattern = 5;
+          enabled = false;
+          return;
+        }
 
-    enabled = binary[2]; //enable/disable
+        if (binary[3]) { //spin
+          sidePattern = 1;
+          if (!sideInit) {
+            sideStage = -1;
+            sideInit = true;
+          }
+          //return;
+        }
+        else {
+          sideInit = false;
+        }
 
-    if (binary[3]) { //spin
+        fire = binary[4];  //shoot
 
-    }
+        if (binary[5]) { //expell
+          sidePattern = 3;
+          return;
+        }
 
-    fire = binary[4];  //shoot
+        if (binary[6]) { //ingest
+          sidePattern = 4;
+          return;
+        }
 
-    if (binary[5]) { //expell
-      sidePattern = 3;
-    }
+        checkCount = 0;
+        for (int i = 3; i < 7; i++) {
+          if (binary[i]) {
+            checkCount++;
+          }
+        }
 
-    if (binary[6]) { //ingest
-      sidePattern = 4;
-    }
-
-    checkCount = 0;
-    for (int i = 3; i < 7; i++) {
-      if (binary[i]) {
-        checkCount++;
-      }
-    }
-    if (checkCount != 0) {
-      if (teleop) {
-        sidePattern = 2;
+        if (checkCount == 0 && enabled) {
+          if (teleop) {
+            sidePattern = 2;
+          }
+          else {
+            sidePattern = 2;
+          }
+        }
       }
       else {
-        sidePattern = 2;
+        sidePattern = 6;
       }
     }
-
   }
 }
-
 
