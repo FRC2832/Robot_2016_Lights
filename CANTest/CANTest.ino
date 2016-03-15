@@ -92,10 +92,11 @@ void loop() {
   currentTime = millis();
   if (currentTime > previousTime + 10) {
     previousTime = currentTime;
-    if (messageIncrement >= 100) {
+    if (messageIncrement >= 10) {
       messageIncrement = 0;
       //Serial.println(mesNum);
       //mesNum = 0;
+      Serial.println();
       for (int i = 0; i < 8; i++) {
         Serial.print(binary[i]);
       }
@@ -191,7 +192,7 @@ int Sparkle(int i, int strip) {
   return sparkleValue[i][strip] - SPARKLERANGE[strip] / 2;
 }
 
-void sideTeleopDefault() {
+void sideAutonDefault() {
   if (sideIncrement >= 2) {
     sidePatternIncrement += sidePatternIncrementor;
     if (sidePatternIncrement >= 25 || sidePatternIncrement <= 0) {
@@ -239,7 +240,7 @@ void sideBinary() {
   }
 }
 
-void sideAutonDefault() {
+void sideTeleopDefault() {
   if (sideIncrement >= 2) {
     sideIncrement = 0;
     sinIncrement += sinIncrementor;
@@ -247,7 +248,7 @@ void sideAutonDefault() {
       sinIncrementor *= -1;
     }
     for (int i = 0; i < SIDEPIXELCOUNT; i++) {
-      sides.setPixelColor(i, Wheel(COLOR_GREEN + (sinIncrement + (i % 10) - 30)));
+      sides.setPixelColor(i, Wheel(teamColour + (sinIncrement + (i % 10) - 30)));
       //Serial.println(sinIncrement);
     }
   }
