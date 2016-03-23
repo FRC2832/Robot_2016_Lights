@@ -3,7 +3,7 @@
 #include <Adafruit_NeoPixel.h>
 
 Adafruit_NeoPixel eyes = Adafruit_NeoPixel(7, 8, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel sides = Adafruit_NeoPixel(49, 6, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel sides = Adafruit_NeoPixel(49, 9, NEO_GRB + NEO_KHZ800);
 
 int const COLOR_GREEN = 70;
 int const COLOR_BLUE = 170;
