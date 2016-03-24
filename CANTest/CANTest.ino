@@ -19,7 +19,7 @@ bool const BINARYOVERIDE = false;
 bool const BINARYSET[8] = {0, 1, 1, 0, 0, 0, 0};
 INT32U const OURCANID = 0x02021451;
 bool const ENABLECAN = true;
-int const SPARKLERANGE[2] = {30, 40};
+int const SPARKLERANGE[2] = {30, 40}; //SPARKLERANGE[Eye, Side]
 
 int eyeLights[EYEPIXELCOUNT];
 int eyeIncrement[EYEPIXELCOUNT];
@@ -261,6 +261,9 @@ void sideShoot() {
     case -1:
       sideIncrement = 0;
       chargeLightsIncrement = 0;
+      for (int i = 0; i < SIDEPIXELCOUNT; i++){
+        sides.setPixelColor(i, 0, 0, 0) ;
+      }
       sideStage++;
       break;
     case 0:
